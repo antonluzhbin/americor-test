@@ -1,6 +1,6 @@
 <?php
 
-use app\models\search\HistorySearch;
+use app\models\History;
 use yii\data\ActiveDataProvider;
 use yii\helpers\Html;
 use yii\widgets\ListView;
@@ -8,7 +8,7 @@ use yii\widgets\Pjax;
 
 /* @var $this yii\web\View */
 /* @var $dataProvider ActiveDataProvider */
-/* @var $model HistorySearch */
+/* @var $model History */
 /* @var $linkExport string */
 
 ?>

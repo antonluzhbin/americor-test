@@ -2,12 +2,11 @@
 use app\models\Call;
 use app\models\Customer;
 use app\models\History;
-use app\models\search\HistorySearch;
 use app\models\Sms;
 use app\widgets\HistoryList\helpers\HistoryListHelper;
 use yii\helpers\Html;
 
-/** @var $model HistorySearch */
+/** @var $model History */
 
 switch ($model->event) {
     case History::EVENT_CREATED_TASK:
