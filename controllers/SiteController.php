@@ -36,8 +36,6 @@ class SiteController extends Controller
      */
     public function actionExport()
     {
-        return $this->render('export', [
-            'items' => Export::getItems()
-        ]);
+        Export::saveToCSVFileAndDownload();
     }
 }

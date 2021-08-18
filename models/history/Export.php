@@ -3,7 +3,6 @@
 namespace app\models\history;
 
 use app\models\History;
-use yii\data\ActiveDataProvider;
 use Yii;
 use app\widgets\HistoryList\helpers\HistoryListHelper;
 
@@ -22,15 +21,9 @@ class Export
     {
         $query = History::find();
 
-        $dataProvider = new ActiveDataProvider([
-            'query' => $query,
-            'pagination' => false,
-            'sort' => [
-                'defaultOrder' => [
-                    'ins_ts' => SORT_DESC,
-                    'id' => SORT_DESC
-                ],
-            ],
+        $query->orderBy([
+            'ins_ts' => SORT_DESC,
+            'id' => SORT_DESC
         ]);
 
         $query->with([
@@ -40,8 +33,19 @@ class Export
             'fax'
         ]);
 
-        $items = $dataProvider->getModels();
-        return $items;
+        foreach ($query->each() as $history) {
+            yield $history;
+        }
+    }
+
+    public static function prepareField($str){
+        $str = str_replace("&nbsp;", " ", $str);
+        $str = trim($str);
+        $str = str_replace("\r\n", "", $str);
+        $str = str_replace("\n", "", $str);
+        $str = str_replace('"', '""', $str);
+        $str = '"' . $str . '"';
+        return $str;
     }
 
     /**
@@ -50,13 +54,13 @@ class Export
      * @param $dataProvider
      * @throws \yii\base\InvalidConfigException
      */
-    public static function saveToCSVFileAndDownload($items)
+    public static function saveToCSVFileAndDownload()
     {
         $filename = 'history-' . time();
         $filepath = dirname(__DIR__) . "/../runtime/{$filename}.csv";
 
         // сохраняем данные в файл
-        self::saveToCSVFile($filepath, $items);
+        self::saveToCSVFile($filepath);
 
         // отдаем файл для скачивания
         self::fileForceDownload($filepath);
@@ -64,26 +68,29 @@ class Export
 
     /**
      * @param $filepath
-     * @param $items
      * @throws \yii\base\InvalidConfigException
      */
-    public static function saveToCSVFile($filepath, $items)
+    public static function saveToCSVFile($filepath)
     {
         $csv_file = fopen($filepath, "w+");
         // сохраняем названия столбцов
-        $csv_str = '"' .Yii::t('app', 'Date') . '",' .
-            '"' .Yii::t('app', 'User') . '",' .
-            '"' .Yii::t('app', 'Type') . '",' .
-            '"' .Yii::t('app', 'Message') . "\"\n";
+        $fields = [];
+        $fields[] = self::prepareField(Yii::t('app', 'Date'));
+        $fields[] = self::prepareField(Yii::t('app', 'User'));
+        $fields[] = self::prepareField(Yii::t('app', 'Type'));
+        $fields[] = self::prepareField(Yii::t('app', 'Message'));
+        $csv_str = implode(',', $fields) . "\n";
         fwrite($csv_file, $csv_str);
 
         // сохраняем данные
-        foreach ($items as $item) {
-            $csv_str = '"' . Yii::$app->formatter->asDatetime($item->ins_ts, 'MM/dd/y (hh:mm a)') . '",' .
-                '"' . (isset($item->user) ? $item->user->username : Yii::t('app', 'System')) . '",' .
-                '"' . $item->object . '",' .
-                '"' . $item->eventText . '",' .
-                '"' . strip_tags(HistoryListHelper::getBodyByModel($item)) . "\"\n";
+        foreach (self::getItems() as $item) {
+            $fields = [];
+            $fields[] = self::prepareField(Yii::$app->formatter->asDatetime($item->ins_ts, 'MM/dd/y (hh:mm a)'));
+            $fields[] = self::prepareField((isset($item->user) ? $item->user->username : Yii::t('app', 'System')));
+            $fields[] = self::prepareField($item->object );
+            $fields[] = self::prepareField($item->eventText);
+            $fields[] = self::prepareField(strip_tags(HistoryListHelper::getBodyByModel($item)));
+            $csv_str = implode(',', $fields) . "\n";
             fwrite($csv_file, $csv_str);
         }
         fclose($csv_file);
